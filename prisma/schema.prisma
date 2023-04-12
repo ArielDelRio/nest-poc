@@ -1389,10 +1389,6 @@ model flavor_index {
   coffee_flavors_flavor coffee_flavors_flavor[]
 }
 
-/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
-// model test {
-// }
-
 enum Attachments_attachment_type_enum {
   DOC
   IMAGE
