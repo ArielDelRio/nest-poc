@@ -3,7 +3,8 @@ import { ConfigModule, ConfigType } from '@nestjs/config';
 import AppConfig from 'config/app.config';
 import DatabaseConfig from 'config/Database.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AttachmentsModule } from './attachemnts/attachemnts.module';
+import { AttachmentsModule } from './attachments/attachemnts.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
@@ -28,7 +29,9 @@ import { AttachmentsModule } from './attachemnts/attachemnts.module';
       }),
     }),
     AttachmentsModule,
+    PrismaModule,
   ],
   controllers: [],
+  providers: [],
 })
 export class AppModule {}
