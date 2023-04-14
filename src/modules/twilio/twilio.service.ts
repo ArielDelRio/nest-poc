@@ -5,13 +5,13 @@ import { Subject } from 'rxjs';
 
 @Injectable()
 export class TwilioService {
-  readonly client: Twilio;
+  readonly twilio: Twilio;
   readonly voiceResponse: twiml.VoiceResponse;
   onTranscribe = new Subject();
 
   constructor() {
     const config = AppConfig();
-    this.client = new Twilio(config.twilio.accountSid, config.twilio.authToken);
+    this.twilio = new Twilio(config.twilio.accountSid, config.twilio.authToken);
     this.voiceResponse = new twiml.VoiceResponse();
   }
 }

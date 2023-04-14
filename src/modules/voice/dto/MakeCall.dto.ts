@@ -1,4 +1,4 @@
-import { IsPhoneNumber, IsUrl } from 'class-validator';
+import { IsPhoneNumber, IsString } from 'class-validator';
 
 export class MakeCallDto {
   @IsPhoneNumber('US')
@@ -7,6 +7,6 @@ export class MakeCallDto {
   @IsPhoneNumber('US')
   from: string;
 
-  @IsUrl()
-  url: string;
+  @IsString()
+  message: string;
 }
