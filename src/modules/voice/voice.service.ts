@@ -2,18 +2,15 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { TwilioService } from '../twilio/twilio.service';
 import { take } from 'rxjs';
 import { MakeCallDto } from './dto/MakeCall.dto';
-import VoiceResponse from 'twilio/lib/twiml/VoiceResponse';
-import { Twilio } from 'twilio';
+import { Twilio, twiml } from 'twilio';
 import { MODERATOR } from 'src/common/constants';
 
 @Injectable()
 export class VoiceService {
   private _callId: string;
-  private voiceResponse: VoiceResponse;
   private twilio: Twilio;
 
   constructor(private readonly twilioService: TwilioService) {
-    this.voiceResponse = this.twilioService.voiceResponse;
     this.twilio = this.twilioService.twilio;
   }
 
@@ -27,12 +24,12 @@ export class VoiceService {
 
   async makeCall({ to, from, message }: MakeCallDto) {
     try {
-      const twiml = this.voiceResponse.say(message);
+      const voiceResponse = new twiml.VoiceResponse();
 
       const call = await this.twilio.calls.create({
         to,
         from,
-        twiml,
+        twiml: voiceResponse.say(message),
       });
 
       return call;
@@ -42,8 +39,9 @@ export class VoiceService {
   }
 
   async holdCall() {
-    this.voiceResponse.say({ voice: 'alice' }, 'Please hold!');
-    return this.voiceResponse.toString();
+    const voiceResponse = new twiml.VoiceResponse();
+    voiceResponse.say({ voice: 'alice' }, 'Please hold!');
+    return voiceResponse.toString();
   }
 
   async receiveCall() {
@@ -65,12 +63,13 @@ export class VoiceService {
   }
 
   async exitCall() {
+    const voiceResponse = new twiml.VoiceResponse();
     const sub$ = this.twilioService.onTranscribe
       .pipe(take(1))
       .subscribe((transcript: any) => {
         const message = transcript.text + 'Thank you. Goodbye';
-        this.voiceResponse.say({ voice: 'alice' }, message);
-        return this.voiceResponse.toString();
+        voiceResponse.say({ voice: 'alice' }, message);
+        return voiceResponse.toString();
       });
     // unsubscribe to avoid memory leak
     sub$.unsubscribe();
@@ -81,27 +80,29 @@ export class VoiceService {
     const call = await this.twilio
       .calls(this._callId)
       .update({ status: 'completed' });
-
     return call.status === 'canceled';
   }
 
   async recordCall() {
-    this.voiceResponse.say('Hello. Please leave a message after the beep.');
+    const voiceResponse = new twiml.VoiceResponse();
 
-    this.voiceResponse.record({
+    voiceResponse.say('Hello. Please leave a message after the beep.');
+
+    voiceResponse.record({
       action: '/voice/handle-recording',
       method: 'POST',
       transcribe: true,
       playBeep: true,
     });
 
-    this.voiceResponse.hangup();
+    voiceResponse.hangup();
 
-    return this.voiceResponse.toString();
+    return voiceResponse.toString();
   }
 
   async createModeratedConference(from: string) {
-    const dial = this.voiceResponse.dial();
+    const voiceResponse = new twiml.VoiceResponse();
+    const dial = voiceResponse.dial();
     const CONFERENCE_NAME = 'My conference';
     const isModerator = from === MODERATOR;
 
@@ -113,42 +114,68 @@ export class VoiceService {
       CONFERENCE_NAME,
     );
 
-    return this.voiceResponse.toString();
+    return voiceResponse.toString();
   }
 
   async interactiveVoiceResponse() {
-    const gather = this.voiceResponse.gather({
+    const voiceResponse = new twiml.VoiceResponse();
+
+    const gather = voiceResponse.gather({
       numDigits: 1,
       action: '/voice/gather',
     });
     gather.say('For sales, press 1. For support, press 2.');
 
-    this.voiceResponse.redirect('/voice/interactive-voice-response');
+    voiceResponse.redirect('/voice/interactive-voice-response');
 
-    return this.voiceResponse.toString();
+    return voiceResponse.toString();
   }
 
   async gather(Digits) {
-    console.log(Digits);
+    const voiceResponse = new twiml.VoiceResponse();
+    console.log(typeof Digits);
     if (Digits) {
       console.log(`digits pressed ${Digits}`);
       switch (Digits) {
         case '1':
-          this.voiceResponse.say('You selected sales. Good for you!');
+          voiceResponse.say('You selected sales. Good for you!');
           break;
         case '2':
           console.log('I am in 2');
-          this.voiceResponse.say('You need support. We will help!');
+          voiceResponse.say('You need support. We will help!');
           break;
         default:
-          this.voiceResponse.say("Sorry, I don't understand that choice.");
-          this.voiceResponse.pause();
-          this.voiceResponse.redirect('/voice/interactive-voice-response');
+          voiceResponse.say("Sorry, I don't understand that choice.");
+          voiceResponse.pause();
+          voiceResponse.redirect('/voice/interactive-voice-response');
           break;
       }
     } else {
-      this.voiceResponse.redirect('/voice/interactive-voice-response');
+      voiceResponse.redirect('/voice/interactive-voice-response');
     }
-    return this.voiceResponse.toString();
+    return voiceResponse.toString();
+  }
+
+  async retrieveCallsList() {
+    /**
+     * Retrieve call by id
+     */
+    // return await this.twilio
+    //   .calls('CAe1644a7eed5088b159577c5802d8be38')
+    //   .fetch();
+
+    /**
+     * Retrieve calls by filters
+     */
+    // return await this.twilio.calls.list({
+    //   status: 'busy',
+    //   to: '+2347030000000',
+    //   limit: 20,
+    // });
+
+    /**
+     * Retrieve calls
+     */
+    return await this.twilio.calls.list();
   }
 }

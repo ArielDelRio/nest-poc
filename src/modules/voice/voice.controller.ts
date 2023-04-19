@@ -1,4 +1,11 @@
-import { Body, Controller, Post, UseInterceptors } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  UseInterceptors,
+} from '@nestjs/common';
 import { MakeCallDto } from './dto/MakeCall.dto';
 import { VoiceService } from './voice.service';
 import { TwilioEventsInterceptor } from 'src/interceptor/twilio-events.interceptor';
@@ -25,15 +32,19 @@ export class VoiceController {
   }
 
   @Post('receive-call')
-  async receiveCall() {
+  async receiveCall(@Body() body) {
     // return this.voiceService.receiveCall();
-    // return this.voiceService.createModeratedConference(body.From);
-    return this.interactiveVoiceResponse();
+    return this.voiceService.createModeratedConference(body.From);
+    // return this.voiceService.interactiveVoiceResponse();
   }
 
+  @HttpCode(200)
   @Post('handler-fail')
-  async handlerFail() {
-    console.log();
+  async handlerFail(@Body() body) {
+    console.log({ body });
+    console.log(
+      `Se ha producido un fallo en la llamada o mensaje de texto: ${body}`,
+    );
   }
 
   @Post('status-changes')
@@ -63,5 +74,10 @@ export class VoiceController {
   @Post('gather')
   async gather(@Body() gatherDto: GatherDto) {
     return this.voiceService.gather(gatherDto?.Digits);
+  }
+
+  @Get('retrieve-calls-list')
+  async retrieveCallsList() {
+    return this.voiceService.retrieveCallsList();
   }
 }
