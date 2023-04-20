@@ -1389,6 +1389,16 @@ model flavor_index {
   coffee_flavors_flavor coffee_flavors_flavor[]
 }
 
+model Agent {
+  id          Int      @id @default(autoincrement())
+  name        String
+  email       String   @unique
+  extension   String?  @unique
+  phoneNumber String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 enum Attachments_attachment_type_enum {
   DOC
   IMAGE
