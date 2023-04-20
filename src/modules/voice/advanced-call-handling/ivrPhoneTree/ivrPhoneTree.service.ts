@@ -1,14 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { TwilioService } from 'src/modules/twilio/twilio.service';
-import { Twilio, twiml } from 'twilio';
+import { twiml } from 'twilio';
 
 @Injectable()
-export class AdvancedCallHandlingService {
+export class IVRPhoneTreeService {
   private _callId: string;
-  private twilio: Twilio;
-  constructor(private readonly twilioService: TwilioService) {
-    this.twilio = this.twilioService.twilio;
-  }
 
   public get callId(): string {
     return this._callId;
