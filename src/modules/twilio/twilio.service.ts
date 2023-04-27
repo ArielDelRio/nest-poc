@@ -1,7 +1,7 @@
-import AppConfig from 'src/config/app.config';
 import { Injectable } from '@nestjs/common';
 import { Subject } from 'rxjs';
 import { Twilio } from 'twilio';
+import TwilioConfig from 'src/config/twilio.config';
 
 @Injectable()
 export class TwilioService {
@@ -9,7 +9,7 @@ export class TwilioService {
   onTranscribe = new Subject();
 
   constructor() {
-    const config = AppConfig();
-    this.twilio = new Twilio(config.twilio.accountSid, config.twilio.authToken);
+    const config = TwilioConfig();
+    this.twilio = new Twilio(config.accountSid, config.authToken);
   }
 }
