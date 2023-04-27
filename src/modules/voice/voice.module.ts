@@ -6,6 +6,10 @@ import { VoiceService } from './voice.service';
 import { TwilioModule } from '../twilio/twilio.module';
 import { IVRPhoneTreeController } from './advanced-call-handling/ivrPhoneTree/ivrPhoneTree.controller';
 import { IVRPhoneTreeService } from './advanced-call-handling/ivrPhoneTree/ivrPhoneTree.service';
+import { QueueCallsService } from './advanced-call-handling/queueCalls/QueueCalls.service';
+import { QueueCallsController } from './advanced-call-handling/queueCalls/QueueCalls.controller';
+import { TaskRouterController } from './advanced-call-handling/taskRouter/TaskRouter.controller';
+import { TaskRouterService } from './advanced-call-handling/taskRouter/TaskRouter.service';
 
 @Module({
   imports: [TwilioModule],
@@ -13,11 +17,15 @@ import { IVRPhoneTreeService } from './advanced-call-handling/ivrPhoneTree/ivrPh
     VoiceController,
     IVRPhoneTreeController,
     IVRScreeningAndRecordingController,
+    QueueCallsController,
+    TaskRouterController,
   ],
   providers: [
     VoiceService,
     IVRPhoneTreeService,
     IVRScreeningAndRecordingService,
+    QueueCallsService,
+    TaskRouterService,
   ],
 })
 export class VoiceModule {}

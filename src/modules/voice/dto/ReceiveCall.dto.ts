@@ -1,0 +1,20 @@
+export type ReceiveCallDto = {
+  CallerCity: string;
+  CallerCountry: string;
+  CallerState: string;
+  CallerZip: string;
+  CallSid: string;
+  CallStatus: string;
+  CallToken: string;
+  Direction: string;
+  From: string;
+  FromCity: string;
+  FromCountry: string;
+  FromState: string;
+  FromZip: string;
+  To: string;
+  ToCity: string;
+  ToCountry: string;
+  ToState: string;
+  ToZip: string;
+};
