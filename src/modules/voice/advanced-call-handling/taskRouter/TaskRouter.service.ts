@@ -22,4 +22,37 @@ export class TaskRouterService {
     });
     return task.attributes;
   }
+
+  async removeTask(taskSid: string) {
+    try {
+      return await this.workspace.tasks(taskSid).remove();
+    } catch (error) {
+      console.log({ error });
+    }
+  }
+
+  async acceptReservation(taskSid: string, reservationSid: string) {
+    const reservation = await this.workspace
+      .tasks(taskSid)
+      .reservations(reservationSid)
+      .update({
+        reservationStatus: 'accepted',
+      });
+
+    // const worker = await this.workspace.workers(reservation.workerSid);
+    // const busyActivity = await this.workspace.activities.list({
+    //   friendlyName: 'Busy',
+    //   limit: 1,
+    // });
+
+    // await worker.update({
+    //   activitySid: busyActivity?.[0]?.sid,
+    // });
+
+    return reservation;
+  }
+
+  async completeTask(taskSid: string, reservationSid: string) {
+    return 'ok';
+  }
 }
