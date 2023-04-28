@@ -1,14 +1,33 @@
-import { TaskInstanceDto } from '../../dto/TaskInstance.dto';
+import { Response } from 'express';
 import { TaskRouterService } from './TaskRouter.service';
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Res } from '@nestjs/common';
 
 @Controller('task-router')
 export class TaskRouterController {
   constructor(private readonly taskRouterService: TaskRouterService) {}
+
+  @Get('incoming-call')
+  incomingCall() {
+    return this.taskRouterService.incomingCall();
+  }
+
+  @Post('enqueue-call')
+  enqueueCall(@Body('Digits') digits: string) {
+    return this.taskRouterService.enqueueCall(digits);
+  }
+
   @Post()
-  assignmentCallback(@Body() taskInstance) {
+  assignmentCallback(@Body() taskInstance, @Res() res: Response) {
     console.log({ taskInstance });
-    return 'ok';
+    const activitySid = 'WA844524290c9d7f84816e71ee08e80212';
+
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).send(
+      JSON.stringify({
+        instruction: 'dequeue',
+        post_work_activity_sid: activitySid,
+      }),
+    );
   }
 
   @Get('fallback')
@@ -36,11 +55,10 @@ export class TaskRouterController {
       reservationSid,
     );
   }
-  @Post('complete-reservation')
-  async completeTask(
-    @Body()
-    { taskSid, reservationSid }: { taskSid: string; reservationSid: string },
-  ) {
-    return await this.taskRouterService.completeTask(taskSid, reservationSid);
+
+  @Get('agents')
+  agentsView(@Query('WorkerSid') workerSid: string, @Res() res: Response) {
+    const workerToken = this.taskRouterService.agentsView(workerSid);
+    return res.render('agents', { workerToken });
   }
 }
