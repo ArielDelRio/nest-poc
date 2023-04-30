@@ -33,8 +33,8 @@ export class VoiceService {
       });
 
       return call;
-    } catch (error) {
-      throw new InternalServerErrorException(error.message);
+    } catch (error: any) {
+      throw new InternalServerErrorException(error?.message);
     }
   }
 

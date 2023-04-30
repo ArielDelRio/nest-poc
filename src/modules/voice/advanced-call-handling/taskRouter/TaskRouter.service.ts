@@ -1,17 +1,17 @@
-import TaskRouterCapability from 'twilio/lib/jwt/taskrouter/TaskRouterCapability';
 import { Injectable } from '@nestjs/common';
 import TwilioConfig from 'src/config/twilio.config';
 import { TwilioService } from 'src/modules/twilio/twilio.service';
-import { twiml } from 'twilio';
+import { twiml, jwt } from 'twilio';
 import { WorkspaceContext } from 'twilio/lib/rest/taskrouter/v1/workspace';
-import { Policy } from 'twilio/lib/jwt/taskrouter/TaskRouterCapability';
+import { TWILIO } from 'src/common/constants';
+import { buildWorkspacePolicy } from './helper';
 
 @Injectable()
 export class TaskRouterService {
   private workspace: WorkspaceContext;
   private twilioConfig = TwilioConfig();
   constructor(private readonly twilioService: TwilioService) {
-    this.workspace = this.twilioService.twilio.taskrouter.v1.workspaces(
+    this.twilioService.twilio.taskrouter.v1.workspaces(
       this.twilioConfig.workspaceSid,
     );
   }
@@ -26,8 +26,14 @@ export class TaskRouterService {
       timeout: 5,
     });
 
-    gather.say({ language: 'es-ES' }, 'Para Español oprime el uno.');
-    gather.say({ language: 'en-US' }, 'For English, please hold or press two.');
+    gather.say(
+      { language: 'es-ES', voice: 'alice' },
+      'Para Español oprime el uno.',
+    );
+    gather.say(
+      { language: 'en-US', voice: 'alice' },
+      'For English, please hold or press two.',
+    );
 
     return voiceResponse.toString();
   }
@@ -39,8 +45,10 @@ export class TaskRouterService {
     });
 
     if (digits === '1') {
+      voiceResponse.say('Estamos transfiriendo tu llamada a un agente.');
       enqueue.task({}, JSON.stringify({ selected_language: 'es' }));
     } else {
+      voiceResponse.say('Please wait while we connect you to an agent.');
       enqueue.task({}, JSON.stringify({ selected_language: 'en' }));
     }
 
@@ -88,41 +96,49 @@ export class TaskRouterService {
   }
 
   agentsView(workerSid: string) {
-    const workerCapability = new TaskRouterCapability({
+    const capability = new jwt.taskrouter.TaskRouterCapability({
       accountSid: this.twilioConfig.accountSid,
       authToken: this.twilioConfig.authToken,
       workspaceSid: this.twilioConfig.workspaceSid,
-      channelId: 'TC3e88329f5e65f3998b8fe6bc0c7d10b7',
+      channelId: workerSid,
     });
 
-    const activitiesPolicy = new Policy({
-      url: `https://taskrouter.twilio.com/v1/Workspaces/${this.twilioConfig.workspaceSid}/Activities`,
-      method: 'POST',
-      allow: true,
-    });
+    // Event Bridge Policies
+    const eventBridgePolicies = jwt.taskrouter.util.defaultEventBridgePolicies(
+      this.twilioConfig.accountSid,
+      workerSid,
+    );
 
-    const reservationsPolicy = new Policy({
-      url: `https://taskrouter.twilio.com/v1/Workspaces/${this.twilioConfig.workspaceSid}/Tasks/**`,
-      method: 'POST',
-      allow: true,
-    });
+    // Worker Policies
+    const workerPolicies = jwt.taskrouter.util.defaultWorkerPolicies(
+      TWILIO.VERSION,
+      this.twilioConfig.workspaceSid,
+      workerSid,
+    );
 
-    workerCapability.addPolicy(activitiesPolicy);
-    workerCapability.addPolicy(reservationsPolicy);
+    const workspacePolicies = [
+      // Workspace fetch Policy
+      buildWorkspacePolicy(),
+      // Workspace subresources fetch Policy
+      buildWorkspacePolicy({ resources: ['**'] }),
+      // Workspace Activities Update Policy
+      buildWorkspacePolicy({ resources: ['Activities'], method: 'POST' }),
+      // Workspace Activities Worker Reserations Policy
+      buildWorkspacePolicy({
+        resources: ['Workers', workerSid, 'Reservations', '**'],
+        method: 'POST',
+      }),
+    ];
 
-    const workerToken = workerCapability.toJwt();
+    eventBridgePolicies
+      .concat(workerPolicies)
+      .concat(workspacePolicies)
+      .forEach(function (policy) {
+        capability.addPolicy(policy);
+      });
 
-    // worker_capability = WorkerCapabilityToken(
-    //   account_sid,
-    //   auth_token,
-    //   workspace_sid,
-    //   worker_sid,
-    // );
-    // worker_capability.allow_update_activities();
-    // worker_capability.allow_update_reservations();
-    // worker_token = worker_capability.to_jwt().decode('utf-8');
-    // return render_template('agent.html', (worker_token = worker_token));
+    const token = capability.toJwt();
 
-    return workerToken;
+    return token;
   }
 }

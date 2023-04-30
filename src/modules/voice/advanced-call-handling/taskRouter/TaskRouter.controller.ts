@@ -19,7 +19,7 @@ export class TaskRouterController {
   @Post()
   assignmentCallback(@Body() taskInstance, @Res() res: Response) {
     console.log({ taskInstance });
-    const activitySid = 'WA844524290c9d7f84816e71ee08e80212';
+    const activitySid = 'WA9948413ed42e0eaff0b583cfea2a209e';
 
     res.setHeader('Content-Type', 'application/json');
     res.status(200).send(
@@ -54,6 +54,11 @@ export class TaskRouterController {
       taskSid,
       reservationSid,
     );
+  }
+
+  @Post('event-callback')
+  eventCallback(@Body() event: any) {
+    console.log({ event });
   }
 
   @Get('agents')

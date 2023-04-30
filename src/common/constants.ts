@@ -60,3 +60,8 @@ export const ROUTES = {
     },
   },
 };
+
+export const TWILIO = {
+  TASKROUTER_BASE_URL: 'https://taskrouter.twilio.com',
+  VERSION: 'v1',
+};
