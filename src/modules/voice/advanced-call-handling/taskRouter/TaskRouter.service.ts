@@ -100,7 +100,7 @@ export class TaskRouterService {
       accountSid: this.twilioConfig.accountSid,
       authToken: this.twilioConfig.authToken,
       workspaceSid: this.twilioConfig.workspaceSid,
-      channelId: workerSid,
+      channelId: workerSid || 'WK000',
     });
 
     // Event Bridge Policies
@@ -123,9 +123,14 @@ export class TaskRouterService {
       buildWorkspacePolicy({ resources: ['**'] }),
       // Workspace Activities Update Policy
       buildWorkspacePolicy({ resources: ['Activities'], method: 'POST' }),
-      // Workspace Activities Worker Reserations Policy
+      // Workspace Activities Worker Reservations Policy
       buildWorkspacePolicy({
         resources: ['Workers', workerSid, 'Reservations', '**'],
+        method: 'POST',
+      }),
+      // Worker Update Policy
+      buildWorkspacePolicy({
+        resources: ['Workers', workerSid],
         method: 'POST',
       }),
     ];

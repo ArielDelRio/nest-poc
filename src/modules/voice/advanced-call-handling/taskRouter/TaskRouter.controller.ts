@@ -62,8 +62,7 @@ export class TaskRouterController {
   }
 
   @Get('agents')
-  agentsView(@Query('WorkerSid') workerSid: string, @Res() res: Response) {
-    const workerToken = this.taskRouterService.agentsView(workerSid);
-    return res.render('agents', { workerToken });
+  agentsView(@Query('workerSid') workerSid: string) {
+    return this.taskRouterService.agentsView(workerSid);
   }
 }
