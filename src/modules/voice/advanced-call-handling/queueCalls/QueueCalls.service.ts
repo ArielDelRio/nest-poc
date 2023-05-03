@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { twiml } from 'twilio';
 import { ReceiveCallDto } from '../../dto/ReceiveCall.dto';
 import { agents } from './Agents';
+import AccessToken, { VoiceGrant } from 'twilio/lib/jwt/AccessToken';
+import twilioConfig from 'src/config/twilio.config';
 
 @Injectable()
 export class QueueCallsService {

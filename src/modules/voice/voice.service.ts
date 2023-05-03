@@ -2,16 +2,24 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { TwilioService } from '../twilio/twilio.service';
 import { take } from 'rxjs';
 import { MakeCallDto } from './dto/MakeCall.dto';
-import { Twilio, twiml } from 'twilio';
+import { Twilio, jwt, twiml } from 'twilio';
 import { MODERATOR } from 'src/common/constants';
+import twilioConfig, { TwilioConfig } from 'src/config/twilio.config';
+import { WorkspaceContext } from 'twilio/lib/rest/taskrouter/v1/workspace';
 
 @Injectable()
 export class VoiceService {
   private _callId: string;
   private twilio: Twilio;
+  private workspace: WorkspaceContext;
+  private twilioConfig: TwilioConfig;
 
   constructor(private readonly twilioService: TwilioService) {
+    this.twilioConfig = twilioConfig();
     this.twilio = this.twilioService.twilio;
+    this.workspace = this.twilio.taskrouter.v1.workspaces(
+      this.twilioConfig.workspaceSid,
+    );
   }
 
   public get callId(): string {
@@ -45,12 +53,11 @@ export class VoiceService {
   }
 
   async receiveCall() {
-    return this.recordCall();
+    // return this.recordCall();
     // this.voiceResponse.say(
     //   { voice: 'alice' },
     //   'Welcome, what would you like to know about our product?',
     // );
-
     // this.voiceResponse.record({
     //   action: '/exit-call',
     //   method: 'POST',
@@ -60,6 +67,10 @@ export class VoiceService {
     //   recordingStatusCallbackEvent: ['in-progress'],
     //   transcribeCallback: '/transcribe-call',
     // });
+
+    const voiceResponse = new twiml.VoiceResponse();
+    const dial = voiceResponse.dial();
+    dial.client('Ariel');
   }
 
   async exitCall() {
@@ -177,5 +188,29 @@ export class VoiceService {
      * Retrieve calls
      */
     return await this.twilio.calls.list();
+  }
+
+  async tokenGenerator(workerSid) {
+    const worker = await this.workspace.workers(workerSid).fetch();
+
+    const grant = new jwt.AccessToken.VoiceGrant({
+      outgoingApplicationSid: this.twilioConfig.twiMLAppSid,
+      incomingAllow: true,
+    });
+
+    const accessToken = new jwt.AccessToken(
+      this.twilioConfig.accountSid,
+      this.twilioConfig.apiKey,
+      this.twilioConfig.apiSecret,
+      {
+        identity: worker.friendlyName,
+      },
+    );
+
+    accessToken.addGrant(grant);
+
+    const token = accessToken.toJwt();
+
+    return token;
   }
 }

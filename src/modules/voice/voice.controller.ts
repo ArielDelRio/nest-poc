@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   Post,
+  Query,
   UseInterceptors,
 } from '@nestjs/common';
 import { MakeCallDto } from './dto/MakeCall.dto';
@@ -33,8 +34,9 @@ export class VoiceController {
 
   @Post('receive-call')
   async receiveCall(@Body() body) {
-    // return this.voiceService.receiveCall();
-    return this.voiceService.createModeratedConference(body.From);
+    console.log('Receive call');
+    return this.voiceService.receiveCall();
+    // return this.voiceService.createModeratedConference(body.From);
     // return this.voiceService.interactiveVoiceResponse();
   }
 
@@ -79,5 +81,10 @@ export class VoiceController {
   @Get('retrieve-calls-list')
   async retrieveCallsList() {
     return this.voiceService.retrieveCallsList();
+  }
+
+  @Get('token/agents')
+  async tokenGenerator(@Query('workerSid') workerSid: string) {
+    return await this.voiceService.tokenGenerator(workerSid);
   }
 }

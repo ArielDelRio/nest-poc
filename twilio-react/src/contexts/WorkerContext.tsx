@@ -1,7 +1,8 @@
 import { createContext, useContext, useState } from 'react';
+import { Worker } from '../common/constants';
 
 type WorkerContextType = {
-  worker: {} | undefined;
+  worker: Worker | undefined;
   setWorker: React.Dispatch<React.SetStateAction<any>>;
 };
 

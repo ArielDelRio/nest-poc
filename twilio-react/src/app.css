@@ -1,3 +1,17 @@
 .display-activity {
   display: block !important;
 }
+
+.container {
+  display: flex;
+  width: 100%;
+  max-width: 80% !important;
+  gap: 5em;
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}

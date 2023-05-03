@@ -1,12 +1,19 @@
 import { createContext, useContext, useState } from 'react';
 
+export type LogType = 'error' | 'info' | 'warning';
+
+export type LoggerType = (
+  value: JSX.Element | string,
+  logType?: LogType,
+) => void;
+
 type LoggerContextType = {
-  log: string;
-  logger: (value: string) => void;
+  log: JSX.Element | string;
+  logger: LoggerType;
   clearLog: () => void;
 };
 
-const LoggerContext = createContext<LoggerContextType | undefined>(undefined);
+const LoggerContext = createContext<LoggerContextType>({} as LoggerContextType);
 
 export const useLoggerContext = () => {
   const context = useContext(LoggerContext);
@@ -25,17 +32,28 @@ type UserContextProviderProps = {
 export const LoggerContextProvider = ({
   children,
 }: UserContextProviderProps) => {
-  const [log, setLog] = useState<string>('');
+  const [log, setLog] = useState<JSX.Element | string>('');
 
-  const logger = (value: string) => {
+  const logger = (value: JSX.Element | string, logType: LogType = 'info') => {
+    const color =
+      logType === 'error' ? 'red' : logType === 'warning' ? 'orange' : 'black';
+
     setLog((prev) => {
-      console.log({ prev });
-      return prev + '\n' + value;
+      return (
+        <>
+          <>{prev}</>
+          <span style={{ color }}>
+            <span>{'> '}</span>
+            {value}
+          </span>
+          <br />
+        </>
+      );
     });
   };
 
   const clearLog = () => {
-    setLog('');
+    setLog(<></>);
   };
 
   return (
