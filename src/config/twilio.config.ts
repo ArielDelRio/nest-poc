@@ -8,6 +8,7 @@ export type TwilioConfig = {
   apiKey: string;
   apiSecret: string;
   twiMLAppSid: string;
+  callerId: string;
 };
 
 export default registerAs('twilio', () => ({
@@ -18,4 +19,5 @@ export default registerAs('twilio', () => ({
   apiKey: process.env.TWILIO_API_KEY,
   apiSecret: process.env.TWILIO_API_SECRET,
   twiMLAppSid: process.env.TWILIO_TWIML_APP_SID,
+  callerId: process.env.TWILIO_CALLER_ID,
 }));
