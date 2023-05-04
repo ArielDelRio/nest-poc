@@ -40,6 +40,7 @@ export const CallPanelSection = () => {
       // Set Opus as our preferred codec. Opus generally performs better, requiring less bandwidth and
       // providing better audio quality in restrained network conditions.
       codecPreferences: ['opus', 'pcmu'],
+      closeProtection: true, // prevent users from closing the browser tab
     });
 
     registerDeviceListeners(device, {
