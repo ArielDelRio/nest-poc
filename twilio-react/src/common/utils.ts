@@ -149,25 +149,55 @@ export const registerCallEvents = (
     };
   },
 ) => {
-  const { logger } = updateEvents;
+  const { logger, setCall } = updateEvents;
 
   call.on('accept', (call: Call) => {
     logger(`Call accepted, status: ${call.status()}`);
     console.log({ call });
   });
-  call.on('disconnect', (call: Call) => {
-    logger(`Call ended, status ${call.status()}`);
-    console.log({ call });
-  });
+
   call.on('cancel', () => {
     logger(`The call has been canceled.`);
   });
-  call.on('reject', (call: Call) => {
-    logger(`Call rejected by ${call.parameters.From}`);
+
+  call.on('disconnect', (call: Call) => {
+    logger(`The call has been disconnected.`);
     console.log({ call });
   });
+
+  call.on('reject', () => {
+    logger(`The call was rejected.`);
+    console.log({ call });
+  });
+
   call.on('error', (error: CallError) => {
     logger(`Call error `, 'error');
     console.log({ error });
+  });
+
+  call.on('messageSent', (message: { voiceEventSid: any }) => {
+    // voiceEventSid can be used for tracking the message
+    const voiceEventSid = message.voiceEventSid;
+    console.log('Message sent. voiceEventSid: ', voiceEventSid);
+  });
+
+  call.on('messageReceived', (message: { content: any }) => {
+    console.log('Message received:');
+    console.log(JSON.stringify(message.content));
+  });
+
+  call.on('mute', (isMuted: boolean, call: Call) => {
+    // isMuted is true if the input audio is currently muted
+    // i.e. The remote participant CANNOT hear local device's input
+
+    // isMuted is false if the input audio is currently unmuted
+    // i.e. The remote participant CAN hear local device's input
+    logger('Call muted: ' + isMuted);
+    setCall(call);
+    isMuted ? console.log('muted') : console.log('unmuted');
+  });
+
+  call.on('reconnected', (twilioError: any) => {
+    logger(`The call has regained connectivity. ${twilioError}`);
   });
 };

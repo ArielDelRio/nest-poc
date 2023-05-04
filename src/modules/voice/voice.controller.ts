@@ -87,4 +87,9 @@ export class VoiceController {
   handleClientCall(@Body() makeCallDto: any) {
     return this.voiceService.handleClientCall(makeCallDto);
   }
+
+  @Post('handle-client-call-status')
+  handleClientCallStatus(@Body() body: any) {
+    console.log(body);
+  }
 }

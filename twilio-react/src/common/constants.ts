@@ -43,6 +43,7 @@ export interface Device {
   state: 'unregistered' | 'registered' | 'registering' | 'destroyed';
   register: () => void;
   connect: (x: any) => Promise<Call>;
+  disconnectAll: () => void;
 }
 
 export interface CallError {
@@ -62,7 +63,13 @@ export interface Call {
   reject: () => void;
   ignore: () => void;
   direction: 'INCOMING' | 'OUTGOING';
-  status: () => 'closed' | 'pending' | 'ringing';
+  status: () =>
+    | 'reconnecting'
+    | 'connecting'
+    | 'open'
+    | 'closed'
+    | 'pending'
+    | 'ringing';
   parameters: {
     From: string;
     CallSid: string;
@@ -71,4 +78,9 @@ export interface Call {
   };
 
   on: (event: string, listener: any) => void;
+  sendMessage: (message: {
+    content: any;
+    messageType: string;
+    contentType: string;
+  }) => void;
 }

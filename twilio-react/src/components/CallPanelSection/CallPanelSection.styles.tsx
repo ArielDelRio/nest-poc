@@ -50,6 +50,7 @@ export const ErrorLabel = styled.span`
 
 export const ButtonsSection = styled.div`
   display: flex;
+  gap: 0.2em;
 `;
 
 export const ButtonsSectionHeader = styled(ButtonsSection)`

@@ -19,7 +19,7 @@ import { IconButton, PanelButton } from '../PanelButton/PanelButton.style';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPhone, faPhoneSlash } from '@fortawesome/free-solid-svg-icons';
-import { Call, CallError, Device } from '../../common/constants';
+import { Call, Device } from '../../common/constants';
 
 export const CallPanelSection = () => {
   const { logger } = useLoggerContext();
@@ -59,40 +59,45 @@ export const CallPanelSection = () => {
     device?.register();
   };
 
-  const handleAcceptIncomingCall = () => {
-    if (!call) return;
-    call.accept();
-  };
+  // const handlePingToServer = () => {
+  //   if (!call || call.status() !== 'open') return;
+
+  //   const messageObject = {
+  //     content: {
+  //       key1: 'This is a messsage from the client side',
+  //       key2: JSON.stringify({ status: call.status() }),
+  //     },
+  //     messageType: 'user-defined-message',
+  //     contentType: 'application/json',
+  //   };
+
+  //   call.sendMessage(messageObject);
+  //   logger('Ping to server sent');
+  // };
 
   const handlePhoneChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setPhoneToCallInput({ error: '', value: event.target.value });
   };
 
-  const validatePhone = (phone: string) => {
-    const phoneRegex = /^(?:\+?\d{1,3}[ -]?)?\d{3}[ -]?\d{3}[ -]?\d{4}$/;
-    return phoneRegex.test(phone);
-  };
-
-  const handlePhoneBlur = () => {
-    if (!validatePhone(phoneToCallInput.value)) {
-      setPhoneToCallInput({
-        ...phoneToCallInput,
-        error: 'Please enter a valid phone number',
-      });
-    }
-  };
-
   const handleCall = async () => {
+    // accept incoming call
+    if (call && call.status() === 'pending') {
+      call.accept();
+      logger('Call accepted');
+      return;
+    }
+
+    // make a outgoing call
     logger(`Calling phone number ${phoneToCallInput.value}`);
 
-    const call = await device?.connect({
+    const newCall = await device?.connect({
       params: {
         To: phoneToCallInput.value,
       },
     });
 
-    if (call) {
-      registerCallEvents(call, {
+    if (newCall) {
+      registerCallEvents(newCall, {
         logger,
         setCall,
       });
@@ -100,14 +105,20 @@ export const CallPanelSection = () => {
   };
 
   const handleHangUp = async () => {
-    if (!call || call.status() === 'closed') return;
+    if (!device) return;
 
-    if (call.status() === 'pending') {
-      logger('Rejecting ...');
-      call.reject();
-    } else {
-      logger('Hanging up ...');
-      call.disconnect();
+    if (!call) {
+      // OutGoing call
+      device.disconnectAll();
+    } else if (call.status() !== 'closed') {
+      // Incoming call
+      if (call.status() === 'pending') {
+        logger('Rejecting ...');
+        call.reject();
+      } else {
+        logger('Hanging up ...');
+        call.disconnect();
+      }
     }
   };
 
@@ -119,12 +130,9 @@ export const CallPanelSection = () => {
           <PanelButton onClick={handleRegister}>
             Allow Receive calls
           </PanelButton>
-          <PanelButton
-            onClick={handleAcceptIncomingCall}
-            disabled={device?.state === 'unregistered'}
-          >
-            Accept incoming call
-          </PanelButton>
+          {/* <PanelButton onClick={handlePingToServer} disabled={call === null}>
+            Ping to Server
+          </PanelButton> */}
         </ButtonsSectionHeader>
       </CallPanelSectionHeader>
       <CallPanelSectionMain>
@@ -136,7 +144,6 @@ export const CallPanelSection = () => {
             placeholder="1 555 555 1234"
             value={phoneToCallInput.value}
             onChange={handlePhoneChange}
-            // onBlur={handlePhoneBlur}
           />
 
           {phoneToCallInput.error && (
@@ -144,7 +151,10 @@ export const CallPanelSection = () => {
           )}
         </div>
         <ButtonsSection>
-          <IconButton onClick={handleCall}>
+          <IconButton
+            onClick={handleCall}
+            disabled={device?.state === 'unregistered'}
+          >
             <FontAwesomeIcon icon={faPhone} className="phone-icon" />
           </IconButton>
           <IconButton onClick={handleHangUp}>
