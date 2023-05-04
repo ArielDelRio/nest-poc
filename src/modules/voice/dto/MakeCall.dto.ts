@@ -1,12 +1,15 @@
-import { IsPhoneNumber, IsString } from 'class-validator';
-
 export class MakeCallDto {
-  @IsPhoneNumber('US')
-  to: string;
+  // AccountSid?: string;
+  // ApiVersion?: string;
+  // ApplicationSid?: string;
 
-  @IsPhoneNumber('US')
-  from: string;
+  Called: string;
+  Caller: string;
+  CallSid: string;
+  CallStatus: string;
+  Direction: string;
+  From: string;
+  To: string;
 
-  @IsString()
-  message: string;
+  message?: string;
 }

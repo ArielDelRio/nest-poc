@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import TwilioConfig from 'src/config/twilio.config';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import twilioConfig, { TwilioConfig } from 'src/config/twilio.config';
 import { TwilioService } from 'src/modules/twilio/twilio.service';
 import { twiml, jwt } from 'twilio';
 import { WorkspaceContext } from 'twilio/lib/rest/taskrouter/v1/workspace';
@@ -9,9 +9,10 @@ import { buildWorkspacePolicy } from './helper';
 @Injectable()
 export class TaskRouterService {
   private workspace: WorkspaceContext;
-  private twilioConfig = TwilioConfig();
+  private twilioConfig: TwilioConfig;
   constructor(private readonly twilioService: TwilioService) {
-    this.twilioService.twilio.taskrouter.v1.workspaces(
+    this.twilioConfig = twilioConfig();
+    this.workspace = this.twilioService.twilio.taskrouter.v1.workspaces(
       this.twilioConfig.workspaceSid,
     );
   }
@@ -95,55 +96,62 @@ export class TaskRouterService {
     return reservation;
   }
 
-  agentsView(workerSid: string) {
-    const capability = new jwt.taskrouter.TaskRouterCapability({
-      accountSid: this.twilioConfig.accountSid,
-      authToken: this.twilioConfig.authToken,
-      workspaceSid: this.twilioConfig.workspaceSid,
-      channelId: workerSid || 'WK000',
-    });
+  async agentsView(workerSid: string) {
+    try {
+      const worker = await this.workspace.workers(workerSid).fetch();
 
-    // Event Bridge Policies
-    const eventBridgePolicies = jwt.taskrouter.util.defaultEventBridgePolicies(
-      this.twilioConfig.accountSid,
-      workerSid,
-    );
-
-    // Worker Policies
-    const workerPolicies = jwt.taskrouter.util.defaultWorkerPolicies(
-      TWILIO.VERSION,
-      this.twilioConfig.workspaceSid,
-      workerSid,
-    );
-
-    const workspacePolicies = [
-      // Workspace fetch Policy
-      buildWorkspacePolicy(),
-      // Workspace subresources fetch Policy
-      buildWorkspacePolicy({ resources: ['**'] }),
-      // Workspace Activities Update Policy
-      buildWorkspacePolicy({ resources: ['Activities'], method: 'POST' }),
-      // Workspace Activities Worker Reservations Policy
-      buildWorkspacePolicy({
-        resources: ['Workers', workerSid, 'Reservations', '**'],
-        method: 'POST',
-      }),
-      // Worker Update Policy
-      buildWorkspacePolicy({
-        resources: ['Workers', workerSid],
-        method: 'POST',
-      }),
-    ];
-
-    eventBridgePolicies
-      .concat(workerPolicies)
-      .concat(workspacePolicies)
-      .forEach(function (policy) {
-        capability.addPolicy(policy);
+      const capability = new jwt.taskrouter.TaskRouterCapability({
+        accountSid: this.twilioConfig.accountSid,
+        authToken: this.twilioConfig.authToken,
+        workspaceSid: this.twilioConfig.workspaceSid,
+        channelId: worker.sid,
       });
 
-    const token = capability.toJwt();
+      // Event Bridge Policies
+      const eventBridgePolicies =
+        jwt.taskrouter.util.defaultEventBridgePolicies(
+          this.twilioConfig.accountSid,
+          workerSid,
+        );
 
-    return token;
+      // Worker Policies
+      const workerPolicies = jwt.taskrouter.util.defaultWorkerPolicies(
+        TWILIO.VERSION,
+        this.twilioConfig.workspaceSid,
+        workerSid,
+      );
+
+      const workspacePolicies = [
+        // Workspace fetch Policy
+        buildWorkspacePolicy(),
+        // Workspace subresources fetch Policy
+        buildWorkspacePolicy({ resources: ['**'] }),
+        // Workspace Activities Update Policy
+        buildWorkspacePolicy({ resources: ['Activities'], method: 'POST' }),
+        // Workspace Activities Worker Reservations Policy
+        buildWorkspacePolicy({
+          resources: ['Workers', workerSid, 'Reservations', '**'],
+          method: 'POST',
+        }),
+        // Worker Update Policy
+        buildWorkspacePolicy({
+          resources: ['Workers', workerSid],
+          method: 'POST',
+        }),
+      ];
+
+      eventBridgePolicies
+        .concat(workerPolicies)
+        .concat(workspacePolicies)
+        .forEach(function (policy) {
+          capability.addPolicy(policy);
+        });
+
+      const token = capability.toJwt();
+
+      return token;
+    } catch (error) {
+      throw new NotFoundException(error);
+    }
   }
 }

@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import { registerDeviceListeners } from '../../common/utils';
+import {
+  registerCallEvents,
+  registerDeviceListeners,
+} from '../../common/utils';
 import { useLoggerContext } from '../../contexts/LoggerContext';
 import { useFetchToken } from '../../hooks/useFetchToken';
 import {
@@ -16,15 +19,12 @@ import { IconButton, PanelButton } from '../PanelButton/PanelButton.style';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPhone, faPhoneSlash } from '@fortawesome/free-solid-svg-icons';
-import { Call, Device } from '../../common/constants';
+import { Call, CallError, Device } from '../../common/constants';
 
 export const CallPanelSection = () => {
   const { logger } = useLoggerContext();
 
-  const { token: sdkToken } = useFetchToken(
-    'WK38aa33d8bfe686463d5c280707cc0e5f',
-    'voice',
-  );
+  const { token: sdkToken } = useFetchToken('voice');
 
   const [phoneToCallInput, setPhoneToCallInput] = useState({
     value: '',
@@ -44,6 +44,7 @@ export const CallPanelSection = () => {
 
     registerDeviceListeners(device, {
       logger,
+      setCall,
     });
 
     setDevice(device);
@@ -82,48 +83,32 @@ export const CallPanelSection = () => {
   };
 
   const handleCall = async () => {
-    if (!validatePhone(phoneToCallInput.value)) {
-      setPhoneToCallInput({
-        ...phoneToCallInput,
-        error: 'Please enter a valid phone number',
-      });
-      return;
-    }
-
     logger(`Calling phone number ${phoneToCallInput.value}`);
 
-    const call = await device?.connect({ to: phoneToCallInput.value });
+    const call = await device?.connect({
+      params: {
+        To: phoneToCallInput.value,
+      },
+    });
 
     if (call) {
-      call.on('accept', (call: Call) => {
-        logger(`Call accepted by ${call.parameters.From}`);
-        console.log({ call });
+      registerCallEvents(call, {
+        logger,
+        setCall,
       });
-      call.on('disconnect', (call: Call) => {
-        logger(`Call ended by ${call.parameters.From}`);
-        console.log({ call });
-      });
-      call.on('cancel', (call: Call) => {
-        logger(`Call cancelled by ${call.parameters.From}`);
-        console.log({ call });
-      });
-      call.on('reject', (call: Call) => {
-        logger(`Call rejected by ${call.parameters.From}`);
-        console.log({ call });
-      });
-      call.on('error', (error: any) => {
-        logger(`Call error `, 'error');
-        console.log({ error });
-      });
-
-      setCall(call);
     }
   };
 
   const handleHangUp = async () => {
     if (!call || call.status() === 'closed') return;
-    logger('Hanging up ...');
-    call.disconnect();
+
+    if (call.status() === 'pending') {
+      logger('Rejecting ...');
+      call.reject();
+    } else {
+      logger('Hanging up ...');
+      call.disconnect();
+    }
   };
 
   return (
@@ -151,7 +136,7 @@ export const CallPanelSection = () => {
             placeholder="1 555 555 1234"
             value={phoneToCallInput.value}
             onChange={handlePhoneChange}
-            onBlur={handlePhoneBlur}
+            // onBlur={handlePhoneBlur}
           />
 
           {phoneToCallInput.error && (

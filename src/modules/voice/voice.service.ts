@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { TwilioService } from '../twilio/twilio.service';
 import { take } from 'rxjs';
 import { MakeCallDto } from './dto/MakeCall.dto';
@@ -30,13 +34,13 @@ export class VoiceService {
     this._callId = v;
   }
 
-  async makeCall({ to, from, message }: MakeCallDto) {
+  async makeCall({ To, From, message }: MakeCallDto) {
     try {
       const voiceResponse = new twiml.VoiceResponse();
 
       const call = await this.twilio.calls.create({
-        to,
-        from,
+        to: To,
+        from: From,
         twiml: voiceResponse.say(message),
       });
 
@@ -191,26 +195,56 @@ export class VoiceService {
   }
 
   async tokenGenerator(workerSid) {
-    const worker = await this.workspace.workers(workerSid).fetch();
+    try {
+      const worker = await this.workspace.workers(workerSid).fetch();
 
-    const grant = new jwt.AccessToken.VoiceGrant({
-      outgoingApplicationSid: this.twilioConfig.twiMLAppSid,
-      incomingAllow: true,
-    });
+      const grant = new jwt.AccessToken.VoiceGrant({
+        outgoingApplicationSid: this.twilioConfig.twiMLAppSid,
+        incomingAllow: true,
+      });
 
-    const accessToken = new jwt.AccessToken(
-      this.twilioConfig.accountSid,
-      this.twilioConfig.apiKey,
-      this.twilioConfig.apiSecret,
-      {
-        identity: worker.friendlyName,
-      },
-    );
+      const accessToken = new jwt.AccessToken(
+        this.twilioConfig.accountSid,
+        this.twilioConfig.apiKey,
+        this.twilioConfig.apiSecret,
+        {
+          identity: worker.friendlyName,
+        },
+      );
 
-    accessToken.addGrant(grant);
+      accessToken.addGrant(grant);
 
-    const token = accessToken.toJwt();
+      const token = accessToken.toJwt();
 
-    return token;
+      return token;
+    } catch (error) {
+      throw new NotFoundException(error);
+    }
+  }
+
+  async handleClientCall(callDto: MakeCallDto) {
+    const { To, From, CallSid } = callDto;
+    const callerId = this.twilioConfig.callerId;
+    const voiceResponse = new twiml.VoiceResponse();
+
+    try {
+      if (To === callerId) {
+        const dial = voiceResponse.dial();
+
+        dial.client('Ariel');
+      } else if (To) {
+        const dial = voiceResponse.dial({ callerId });
+
+        const attr = /^[\d\+\-\(\) ]+$/.test(To) ? 'number' : 'client';
+
+        dial[attr]({}, To);
+      } else {
+        voiceResponse.say('Thanks for calling!');
+      }
+
+      return voiceResponse.toString();
+    } catch (error: any) {
+      throw new InternalServerErrorException(error?.message);
+    }
   }
 }

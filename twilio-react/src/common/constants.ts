@@ -42,7 +42,18 @@ export interface Worker {
 export interface Device {
   state: 'unregistered' | 'registered' | 'registering' | 'destroyed';
   register: () => void;
-  connect: (params: { to: string }) => Promise<Call>;
+  connect: (x: any) => Promise<Call>;
+}
+
+export interface CallError {
+  causes: string[];
+  code: number;
+  description: string;
+  explanation: string;
+  message: string;
+  name: string;
+  originalError: string;
+  solutions: string[];
 }
 
 export interface Call {
@@ -51,13 +62,7 @@ export interface Call {
   reject: () => void;
   ignore: () => void;
   direction: 'INCOMING' | 'OUTGOING';
-  status: () =>
-    | 'closed'
-    | 'closed'
-    | 'closed'
-    | 'pending'
-    | 'pending'
-    | 'ringing';
+  status: () => 'closed' | 'pending' | 'ringing';
   parameters: {
     From: string;
     CallSid: string;
@@ -65,5 +70,5 @@ export interface Call {
     AccountSid: string;
   };
 
-  on: (event: string, callback: (call: Call) => void) => void;
+  on: (event: string, listener: any) => void;
 }

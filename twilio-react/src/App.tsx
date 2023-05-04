@@ -16,16 +16,13 @@ function App() {
   const { logger } = useLoggerContext();
   const { worker, setWorker } = useWorkerContext();
 
-  const { token: workerToken } = useFetchToken(
-    'WK38aa33d8bfe686463d5c280707cc0e5f',
-    'taskRouter',
-  );
+  const { token: workerToken, error: fetchWorkerError } =
+    useFetchToken('taskRouter');
 
   const [workerClient, setWorkerClient] = useState<WorkerClient | null>(null);
 
   useEffect(() => {
     if (!workerToken) {
-      setWorkerClient(null);
       return;
     }
 
@@ -100,7 +97,15 @@ function App() {
     );
   };
 
-  console.log({ worker, workerClient, activities, reservations, channels });
+  // console.log({ worker, workerClient, activities, reservations, channels });
+
+  if (fetchWorkerError)
+    return (
+      <div className="center">
+        <h1>Unable to fetch worker token</h1>
+        <p>{fetchWorkerError.message}</p>
+      </div>
+    );
 
   if (!workerClient) return <div className="center">Loading...</div>;
 

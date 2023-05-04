@@ -19,12 +19,8 @@ export class VoiceController {
   constructor(private readonly voiceService: VoiceService) {}
 
   @Post()
-  async makeCall(@Body() makeCallDto: MakeCallDto) {
-    const call = await this.voiceService.makeCall(makeCallDto);
-
-    this.voiceService.callId = call.sid;
-
-    return { call };
+  async makeCall(@Body() makeCallDto: any) {
+    return await this.voiceService.makeCall(makeCallDto);
   }
 
   @Post('hold-call')
@@ -34,7 +30,6 @@ export class VoiceController {
 
   @Post('receive-call')
   async receiveCall(@Body() body) {
-    console.log('Receive call');
     return this.voiceService.receiveCall();
     // return this.voiceService.createModeratedConference(body.From);
     // return this.voiceService.interactiveVoiceResponse();
@@ -86,5 +81,10 @@ export class VoiceController {
   @Get('token/agents')
   async tokenGenerator(@Query('workerSid') workerSid: string) {
     return await this.voiceService.tokenGenerator(workerSid);
+  }
+
+  @Post('handle-client-call')
+  handleClientCall(@Body() makeCallDto: any) {
+    return this.voiceService.handleClientCall(makeCallDto);
   }
 }
