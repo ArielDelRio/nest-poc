@@ -153,7 +153,7 @@ export const registerCallEvents = (
 
   call.on('accept', (call: Call) => {
     logger(`Call accepted, status: ${call.status()}`);
-    console.log({ call });
+    setCall(call);
   });
 
   call.on('cancel', () => {
@@ -162,23 +162,21 @@ export const registerCallEvents = (
 
   call.on('disconnect', (call: Call) => {
     logger(`The call has been disconnected.`);
-    console.log({ call });
+    setCall(call);
   });
 
   call.on('reject', () => {
     logger(`The call was rejected.`);
-    console.log({ call });
   });
 
   call.on('error', (error: CallError) => {
-    logger(`Call error `, 'error');
-    console.log({ error });
+    logger(`Call error ${error}`, 'error');
   });
 
   call.on('messageSent', (message: { voiceEventSid: any }) => {
     // voiceEventSid can be used for tracking the message
     const voiceEventSid = message.voiceEventSid;
-    console.log('Message sent. voiceEventSid: ', voiceEventSid);
+    console.log({ voiceEventSid });
   });
 
   call.on('messageReceived', (message: { content: any }) => {

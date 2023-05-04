@@ -84,7 +84,6 @@ export const CallPanelSection = () => {
     // accept incoming call
     if (call && call.status() === 'pending') {
       call.accept();
-      logger('Call accepted');
       return;
     }
 
@@ -158,7 +157,10 @@ export const CallPanelSection = () => {
           >
             <FontAwesomeIcon icon={faPhone} className="phone-icon" />
           </IconButton>
-          <IconButton onClick={handleHangUp}>
+          <IconButton
+            onClick={handleHangUp}
+            disabled={!device?.isBusy && call?.status() !== 'pending'}
+          >
             <FontAwesomeIcon icon={faPhoneSlash} className="phone-icon" />
           </IconButton>
         </ButtonsSection>

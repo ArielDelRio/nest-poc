@@ -44,6 +44,7 @@ export interface Device {
   register: () => void;
   connect: (x: any) => Promise<Call>;
   disconnectAll: () => void;
+  isBusy: boolean;
 }
 
 export interface CallError {
