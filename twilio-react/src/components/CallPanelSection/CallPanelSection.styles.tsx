@@ -15,9 +15,13 @@ export const CallPanelSectionHeader = styled(CallPanelSectionBox)``;
 
 export const CallPanelSectionMain = styled(CallPanelSectionBox)`
   text-align: start;
-  padding: 1em 2em;
+  padding: 0.5em 1em;
+`;
+
+export const CallPanelControl = styled.div`
   display: flex;
   justify-content: space-between;
+  padding: 0.6em 1em;
 `;
 
 export const TelInput = styled.input`

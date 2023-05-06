@@ -90,6 +90,13 @@ export class VoiceController {
 
   @Post('handle-client-call-status')
   handleClientCallStatus(@Body() body: any) {
+    return body;
+  }
+
+  @HttpCode(200)
+  @Post('handle-client-call-dial')
+  handleClientCallDial(@Body() body: any) {
     console.log(body);
+    return body;
   }
 }

@@ -11,5 +11,6 @@ export class MakeCallDto {
   From: string;
   To: string;
 
+  Record?: boolean;
   message?: string;
 }

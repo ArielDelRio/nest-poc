@@ -8,6 +8,7 @@ import { useFetchToken } from '../../hooks/useFetchToken';
 import {
   ButtonsSection,
   ButtonsSectionHeader,
+  CallPanelControl,
   CallPanelSectionContainer,
   CallPanelSectionHeader,
   CallPanelSectionMain,
@@ -15,10 +16,20 @@ import {
   LabelInput,
   TelInput,
 } from './CallPanelSection.styles';
-import { IconButton, PanelButton } from '../PanelButton/PanelButton.style';
+import {
+  IconButton,
+  PanelButton,
+  RecordIndicator,
+} from '../PanelButton/PanelButton.style';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPhone, faPhoneSlash } from '@fortawesome/free-solid-svg-icons';
+import {
+  faPhone,
+  faPhoneSlash,
+  faPhoneVolume,
+  faVolumeMute,
+} from '@fortawesome/free-solid-svg-icons';
+
 import { Call, Device } from '../../common/constants';
 
 export const CallPanelSection = () => {
@@ -32,6 +43,7 @@ export const CallPanelSection = () => {
   });
   const [device, setDevice] = useState<Device | null>(null);
   const [call, setCall] = useState<Call | null>(null);
+  const [record, setRecord] = useState(false);
 
   useEffect(() => {
     // Can't import using npm current issue with vite and twilio https://github.com/twilio/twilio-voice.js/issues/76
@@ -46,18 +58,18 @@ export const CallPanelSection = () => {
     registerDeviceListeners(device, {
       logger,
       setCall,
+      setRecord,
     });
 
     setDevice(device);
   }, [sdkToken]);
 
-  const handleRegister = () => {
+  const toggleRegister = () => {
     if (device?.state === 'registered') {
-      logger('Device already registered');
-      return;
+      device?.unregister();
+    } else {
+      device?.register();
     }
-
-    device?.register();
   };
 
   // const handlePingToServer = () => {
@@ -76,10 +88,6 @@ export const CallPanelSection = () => {
   //   logger('Ping to server sent');
   // };
 
-  const handlePhoneChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setPhoneToCallInput({ error: '', value: event.target.value });
-  };
-
   const handleCall = async () => {
     // accept incoming call
     if (call && call.status() === 'pending') {
@@ -93,6 +101,7 @@ export const CallPanelSection = () => {
     const newCall = await device?.connect({
       params: {
         To: phoneToCallInput.value,
+        Record: record,
       },
     });
 
@@ -122,13 +131,40 @@ export const CallPanelSection = () => {
     }
   };
 
+  const handleMute = () => {
+    if (!call) return;
+
+    if (call.isMuted()) {
+      call.mute(false);
+    } else {
+      call.mute();
+    }
+  };
+
+  const handleToggleRecording = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+  ) => {
+    event.stopPropagation();
+    setRecord(!record);
+    logger(`Recording call ${record ? 'stopped' : 'started'}`);
+  };
+
+  console.log({ device, call });
+
   return (
     <CallPanelSectionContainer>
       <CallPanelSectionHeader>
         <p>Call Panel</p>
         <ButtonsSectionHeader>
-          <PanelButton onClick={handleRegister}>
-            Allow Receive calls
+          <PanelButton
+            onClick={toggleRegister}
+            className={`status ${
+              device?.state === 'registered' ? 'active' : 'inactive'
+            }`}
+          >
+            {device?.state === 'registered'
+              ? 'Status Active'
+              : 'Status Inactive'}
           </PanelButton>
           {/* <PanelButton onClick={handlePingToServer} disabled={call === null}>
             Ping to Server
@@ -136,34 +172,61 @@ export const CallPanelSection = () => {
         </ButtonsSectionHeader>
       </CallPanelSectionHeader>
       <CallPanelSectionMain>
-        <div>
-          <LabelInput htmlFor="numberToCall">Number to call</LabelInput>
-          <TelInput
-            id="numberToCall"
-            type="tel"
-            placeholder="1 555 555 1234"
-            value={phoneToCallInput.value}
-            onChange={handlePhoneChange}
-          />
+        <CallPanelControl>
+          <div>
+            <LabelInput htmlFor="numberToCall">Number to call</LabelInput>
+            <TelInput
+              id="numberToCall"
+              type="tel"
+              placeholder="1 555 555 1234"
+              value={phoneToCallInput.value}
+              onChange={(event) =>
+                setPhoneToCallInput({ error: '', value: event.target.value })
+              }
+            />
 
-          {phoneToCallInput.error && (
-            <ErrorLabel>{phoneToCallInput.error}</ErrorLabel>
-          )}
-        </div>
-        <ButtonsSection>
-          <IconButton
-            onClick={handleCall}
-            disabled={device?.state === 'unregistered'}
-          >
-            <FontAwesomeIcon icon={faPhone} className="phone-icon" />
-          </IconButton>
-          <IconButton
-            onClick={handleHangUp}
-            disabled={!device?.isBusy && call?.status() !== 'pending'}
-          >
-            <FontAwesomeIcon icon={faPhoneSlash} className="phone-icon" />
-          </IconButton>
-        </ButtonsSection>
+            {phoneToCallInput.error && (
+              <ErrorLabel>{phoneToCallInput.error}</ErrorLabel>
+            )}
+          </div>
+          <ButtonsSection>
+            <IconButton
+              onClick={handleCall}
+              disabled={device?.state === 'unregistered'}
+            >
+              <RecordIndicator
+                title={record ? 'Recording' : ''}
+                className={`${record ? 'recording' : 'no-recording'}`}
+                onClick={handleToggleRecording}
+              ></RecordIndicator>
+              <FontAwesomeIcon icon={faPhone} className="phone-icon" />
+            </IconButton>
+            <IconButton
+              onClick={handleHangUp}
+              disabled={!device?.isBusy && call?.status() !== 'pending'}
+            >
+              <FontAwesomeIcon icon={faPhoneSlash} className="phone-icon" />
+            </IconButton>
+            <IconButton
+              onClick={handleMute}
+              disabled={!device?.isBusy && call?.status() !== 'pending'}
+            >
+              <FontAwesomeIcon
+                icon={call?.isMuted() ? faVolumeMute : faPhoneVolume}
+                className="phone-icon"
+              />
+            </IconButton>
+          </ButtonsSection>
+        </CallPanelControl>
+        <CallPanelControl>
+          {/* <select title="Available Input Devices">
+            {inputDevices?.map(([id, availableInputDevice]) => (
+              <option key={id} value={id}>
+                {availableInputDevice.label}
+              </option>
+            ))}
+          </select> */}
+        </CallPanelControl>
       </CallPanelSectionMain>
     </CallPanelSectionContainer>
   );

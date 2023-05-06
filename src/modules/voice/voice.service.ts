@@ -10,6 +10,7 @@ import { Twilio, jwt, twiml } from 'twilio';
 import { MODERATOR } from 'src/common/constants';
 import twilioConfig, { TwilioConfig } from 'src/config/twilio.config';
 import { WorkspaceContext } from 'twilio/lib/rest/taskrouter/v1/workspace';
+import { DialAttributes } from 'twilio/lib/twiml/VoiceResponse';
 
 @Injectable()
 export class VoiceService {
@@ -223,17 +224,24 @@ export class VoiceService {
   }
 
   async handleClientCall(callDto: MakeCallDto) {
-    const { To, From, CallSid } = callDto;
+    const { To, Record } = callDto;
     const callerId = this.twilioConfig.callerId;
     const voiceResponse = new twiml.VoiceResponse();
 
+    const dialSettings: DialAttributes = {
+      // action: '/voice/handle-client-call-dial',
+      timeout: 10,
+      // record: Record ? 'record-from-ringing-dual' : 'do-not-record',
+      // recordingStatusCallbackEvent: ['in-progress', 'completed'],
+    };
+
     try {
       if (To === callerId) {
-        const dial = voiceResponse.dial();
+        const dial = voiceResponse.dial(dialSettings);
 
         dial.client('Ariel');
       } else if (To) {
-        const dial = voiceResponse.dial({ callerId });
+        const dial = voiceResponse.dial({ ...dialSettings, callerId });
 
         const attr = /^[\d\+\-\(\) ]+$/.test(To) ? 'number' : 'client';
 

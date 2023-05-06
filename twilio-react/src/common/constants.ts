@@ -42,9 +42,14 @@ export interface Worker {
 export interface Device {
   state: 'unregistered' | 'registered' | 'registering' | 'destroyed';
   register: () => void;
+  unregister: () => void;
   connect: (x: any) => Promise<Call>;
   disconnectAll: () => void;
   isBusy: boolean;
+  emit: (event: string, ...args: any[]) => void;
+  audio: {
+    availableInputDevices: Map<string, { label: string }>;
+  };
 }
 
 export interface CallError {
@@ -84,4 +89,7 @@ export interface Call {
     messageType: string;
     contentType: string;
   }) => void;
+
+  isMuted: () => boolean;
+  mute: (shouldMute?: boolean) => void;
 }

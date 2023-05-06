@@ -63,12 +63,19 @@ export const registerDeviceListeners = (
       (value: SetStateAction<Call | null>): void;
       (arg0: Call | null): void;
     };
+    setRecord: React.Dispatch<React.SetStateAction<boolean>>;
   },
 ) => {
-  const { logger, setCall } = updateEvents;
+  const { logger, setCall, setRecord } = updateEvents;
 
   device.on('registered', () => {
     logger(`${device.identity} device ready to make and receive calls!`);
+    setRecord(true);
+  });
+
+  device.on('unregistered', () => {
+    logger(`${device.identity} device is no longer registered`);
+    setRecord(false);
   });
 
   device.on('accept', (call: Call) => {
@@ -88,6 +95,7 @@ export const registerDeviceListeners = (
 
   device.on('incoming', (call: Call) => {
     logger('Incoming call from ' + call.parameters.From, 'warning');
+    registerCallEvents(call, updateEvents);
     setCall(call);
   });
 
@@ -192,7 +200,6 @@ export const registerCallEvents = (
     // i.e. The remote participant CAN hear local device's input
     logger('Call muted: ' + isMuted);
     setCall(call);
-    isMuted ? console.log('muted') : console.log('unmuted');
   });
 
   call.on('reconnected', (twilioError: any) => {
