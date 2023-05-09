@@ -11,6 +11,7 @@ import { MODERATOR } from 'src/common/constants';
 import twilioConfig, { TwilioConfig } from 'src/config/twilio.config';
 import { WorkspaceContext } from 'twilio/lib/rest/taskrouter/v1/workspace';
 import { DialAttributes } from 'twilio/lib/twiml/VoiceResponse';
+import { RecordingStatus } from 'twilio/lib/rest/api/v2010/account/call/recording';
 
 @Injectable()
 export class VoiceService {
@@ -223,15 +224,19 @@ export class VoiceService {
     }
   }
 
-  async handleClientCall(callDto: MakeCallDto) {
+  async handleClientCall(callDto: any) {
     const { To, Record } = callDto;
     const callerId = this.twilioConfig.callerId;
     const voiceResponse = new twiml.VoiceResponse();
 
+    const recordData = JSON.parse(Record || '{}');
+
     const dialSettings: DialAttributes = {
       // action: '/voice/handle-client-call-dial',
       timeout: 10,
-      // record: Record ? 'record-from-ringing-dual' : 'do-not-record',
+      record: recordData?.isRecording
+        ? 'record-from-ringing-dual'
+        : 'do-not-record',
       // recordingStatusCallbackEvent: ['in-progress', 'completed'],
     };
 
@@ -245,7 +250,14 @@ export class VoiceService {
 
         const attr = /^[\d\+\-\(\) ]+$/.test(To) ? 'number' : 'client';
 
-        dial[attr]({}, To);
+        if (attr === 'client') {
+          dial.client(To).parameter({
+            name: 'Record',
+            value: JSON.stringify({ isRecording: recordData?.isRecording }),
+          });
+        } else {
+          dial.number(To);
+        }
       } else {
         voiceResponse.say('Thanks for calling!');
       }
@@ -253,6 +265,21 @@ export class VoiceService {
       return voiceResponse.toString();
     } catch (error: any) {
       throw new InternalServerErrorException(error?.message);
+    }
+  }
+
+  async getRecordingsCalls(callSid: string) {
+    return await this.twilio.recordings.list({ limit: 5 });
+  }
+
+  async updateRecordingStatus(callSid: string, status: RecordingStatus) {
+    try {
+      return await this.twilio
+        .calls(callSid)
+        .recordings('Twilio.CURRENT')
+        .update({ status });
+    } catch (error) {
+      console.log(error);
     }
   }
 }

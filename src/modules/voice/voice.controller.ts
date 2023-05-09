@@ -99,4 +99,14 @@ export class VoiceController {
     console.log(body);
     return body;
   }
+
+  @Post('recordings-calls')
+  getRecordingsCalls(@Body('callSid') callSid: string) {
+    return this.voiceService.getRecordingsCalls(callSid);
+  }
+
+  @Post('update-recording-status')
+  updateRecordingStatus(@Body() body: any) {
+    return this.voiceService.updateRecordingStatus(body.callSid, body.status);
+  }
 }

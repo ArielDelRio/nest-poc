@@ -83,6 +83,8 @@ export interface Call {
     AccountSid: string;
   };
 
+  customParameters: Map<string, string>;
+
   on: (event: string, listener: any) => void;
   sendMessage: (message: {
     content: any;
@@ -92,4 +94,20 @@ export interface Call {
 
   isMuted: () => boolean;
   mute: (shouldMute?: boolean) => void;
+}
+
+export type RecordingState = 'disabled' | 'ready' | 'recording' | 'paused';
+
+export type RecordingStatus =
+  | 'in-progress'
+  | 'paused'
+  | 'stopped'
+  | 'processing'
+  | 'completed'
+  | 'absent';
+
+export interface Record {
+  state: RecordingState;
+  url: string;
+  status: RecordingStatus;
 }

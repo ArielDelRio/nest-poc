@@ -1,15 +1,15 @@
-import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import { LoggerContextProvider } from './contexts/LoggerContext.tsx';
 import { WorkerContextProvider } from './contexts/WorkerContext.tsx';
+import { RecordContextProvider } from './contexts/RecordContext.tsx';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>
-    <LoggerContextProvider>
-      <WorkerContextProvider>
+  <LoggerContextProvider>
+    <WorkerContextProvider>
+      <RecordContextProvider>
         <App />
-      </WorkerContextProvider>
-    </LoggerContextProvider>
-  </React.StrictMode>,
+      </RecordContextProvider>
+    </WorkerContextProvider>
+  </LoggerContextProvider>,
 );

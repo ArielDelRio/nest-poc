@@ -39,34 +39,3 @@ export const PanelButton = styled.button`
 export const IconButton = styled(PanelButton)`
   width: 4em;
 `;
-
-const recording = keyframes`
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.5);
-  }
-  100% {
-    transform: scale(1);
-  }
-`;
-
-export const RecordIndicator = styled.span`
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  top: -6px;
-  right: -6px;
-
-  &.recording {
-    background-color: #d32f2f;
-    animation: ${recording} 1s infinite linear;
-  }
-
-  &.no-recording {
-    background-color: #737373;
-    animation: none;
-  }
-`;

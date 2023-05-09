@@ -16,11 +16,7 @@ import {
   LabelInput,
   TelInput,
 } from './CallPanelSection.styles';
-import {
-  IconButton,
-  PanelButton,
-  RecordIndicator,
-} from '../PanelButton/PanelButton.style';
+import { IconButton, PanelButton } from '../PanelButton/PanelButton.style';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -31,9 +27,16 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 import { Call, Device } from '../../common/constants';
+import RecordIndicator from '../RecordIndicator/RecordIndicator.components';
+import { RecordingSection } from '../RecordingSection/RecordingSection.components';
+import { useRecordContext } from '../../contexts/RecordContext';
 
 export const CallPanelSection = () => {
   const { logger } = useLoggerContext();
+
+  const RecordContext = useRecordContext();
+
+  const { record, startRecording, completeRecording } = RecordContext;
 
   const { token: sdkToken } = useFetchToken('voice');
 
@@ -41,9 +44,9 @@ export const CallPanelSection = () => {
     value: '',
     error: '',
   });
+
   const [device, setDevice] = useState<Device | null>(null);
   const [call, setCall] = useState<Call | null>(null);
-  const [record, setRecord] = useState(false);
 
   useEffect(() => {
     // Can't import using npm current issue with vite and twilio https://github.com/twilio/twilio-voice.js/issues/76
@@ -58,39 +61,19 @@ export const CallPanelSection = () => {
     registerDeviceListeners(device, {
       logger,
       setCall,
-      setRecord,
+      RecordContext,
     });
 
     setDevice(device);
   }, [sdkToken]);
 
   const toggleRegister = () => {
-    if (device?.state === 'registered') {
-      device?.unregister();
-    } else {
-      device?.register();
-    }
+    device?.state === 'registered' ? device?.unregister() : device?.register();
   };
-
-  // const handlePingToServer = () => {
-  //   if (!call || call.status() !== 'open') return;
-
-  //   const messageObject = {
-  //     content: {
-  //       key1: 'This is a messsage from the client side',
-  //       key2: JSON.stringify({ status: call.status() }),
-  //     },
-  //     messageType: 'user-defined-message',
-  //     contentType: 'application/json',
-  //   };
-
-  //   call.sendMessage(messageObject);
-  //   logger('Ping to server sent');
-  // };
 
   const handleCall = async () => {
     // accept incoming call
-    if (call && call.status() === 'pending') {
+    if (call?.status() === 'pending') {
       call.accept();
       return;
     }
@@ -101,7 +84,7 @@ export const CallPanelSection = () => {
     const newCall = await device?.connect({
       params: {
         To: phoneToCallInput.value,
-        Record: record,
+        Record: JSON.stringify({ isRecording: record.state === 'ready' }),
       },
     });
 
@@ -109,6 +92,7 @@ export const CallPanelSection = () => {
       registerCallEvents(newCall, {
         logger,
         setCall,
+        RecordContext,
       });
     }
   };
@@ -132,43 +116,31 @@ export const CallPanelSection = () => {
   };
 
   const handleMute = () => {
-    if (!call) return;
-
-    if (call.isMuted()) {
-      call.mute(false);
-    } else {
-      call.mute();
-    }
+    call?.mute(!call.isMuted());
   };
 
   const handleToggleRecording = (
     event: React.MouseEvent<HTMLDivElement, MouseEvent>,
   ) => {
     event.stopPropagation();
-    setRecord(!record);
-    logger(`Recording call ${record ? 'stopped' : 'started'}`);
+    if (device?.state === 'unregistered') return;
+
+    RecordContext.toggleRecord();
+    logger(`Recording is ${record.state === 'ready' ? 'disabled' : 'ready'}`);
   };
 
-  console.log({ device, call });
+  // console.log({ device, call, record });
+
+  const status = device?.state === 'registered' ? 'active' : 'inactive';
 
   return (
     <CallPanelSectionContainer>
       <CallPanelSectionHeader>
         <p>Call Panel</p>
         <ButtonsSectionHeader>
-          <PanelButton
-            onClick={toggleRegister}
-            className={`status ${
-              device?.state === 'registered' ? 'active' : 'inactive'
-            }`}
-          >
-            {device?.state === 'registered'
-              ? 'Status Active'
-              : 'Status Inactive'}
+          <PanelButton onClick={toggleRegister} className={`status ${status}`}>
+            {`Status ${status}`}
           </PanelButton>
-          {/* <PanelButton onClick={handlePingToServer} disabled={call === null}>
-            Ping to Server
-          </PanelButton> */}
         </ButtonsSectionHeader>
       </CallPanelSectionHeader>
       <CallPanelSectionMain>
@@ -184,7 +156,6 @@ export const CallPanelSection = () => {
                 setPhoneToCallInput({ error: '', value: event.target.value })
               }
             />
-
             {phoneToCallInput.error && (
               <ErrorLabel>{phoneToCallInput.error}</ErrorLabel>
             )}
@@ -195,10 +166,10 @@ export const CallPanelSection = () => {
               disabled={device?.state === 'unregistered'}
             >
               <RecordIndicator
-                title={record ? 'Recording' : ''}
-                className={`${record ? 'recording' : 'no-recording'}`}
-                onClick={handleToggleRecording}
-              ></RecordIndicator>
+                ready={record.state === 'ready'}
+                isRecording={record.state === 'recording'}
+                toggleRecording={handleToggleRecording}
+              />
               <FontAwesomeIcon icon={faPhone} className="phone-icon" />
             </IconButton>
             <IconButton
@@ -218,15 +189,12 @@ export const CallPanelSection = () => {
             </IconButton>
           </ButtonsSection>
         </CallPanelControl>
-        <CallPanelControl>
-          {/* <select title="Available Input Devices">
-            {inputDevices?.map(([id, availableInputDevice]) => (
-              <option key={id} value={id}>
-                {availableInputDevice.label}
-              </option>
-            ))}
-          </select> */}
-        </CallPanelControl>
+        <RecordingSection
+          callSid={call?.parameters?.CallSid || ''}
+          isActiveCall={call?.status() === 'open'}
+          isRecording={record.state === 'recording'}
+          status={record.status}
+        />
       </CallPanelSectionMain>
     </CallPanelSectionContainer>
   );

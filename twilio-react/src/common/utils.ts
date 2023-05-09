@@ -1,6 +1,8 @@
 import { SetStateAction } from 'react';
 import { LoggerType } from '../contexts/LoggerContext';
 import { Call, CallError } from './constants';
+import { RecordContextType } from '../contexts/RecordContext';
+import { fetchRecordings } from '../services/recording';
 
 export const registerTaskRouterCallbacks = (
   workerClient: any,
@@ -63,19 +65,19 @@ export const registerDeviceListeners = (
       (value: SetStateAction<Call | null>): void;
       (arg0: Call | null): void;
     };
-    setRecord: React.Dispatch<React.SetStateAction<boolean>>;
+    RecordContext: RecordContextType;
   },
 ) => {
-  const { logger, setCall, setRecord } = updateEvents;
+  const { logger, setCall, RecordContext } = updateEvents;
 
   device.on('registered', () => {
     logger(`${device.identity} device ready to make and receive calls!`);
-    setRecord(true);
+    RecordContext.updateRecordState('ready');
   });
 
   device.on('unregistered', () => {
     logger(`${device.identity} device is no longer registered`);
-    setRecord(false);
+    RecordContext.updateRecordState('disabled');
   });
 
   device.on('accept', (call: Call) => {
@@ -97,6 +99,10 @@ export const registerDeviceListeners = (
     logger('Incoming call from ' + call.parameters.From, 'warning');
     registerCallEvents(call, updateEvents);
     setCall(call);
+
+    // const recordData = JSON.parse(call.customParameters.get('Record') || '{}');
+
+    // setRecord({ state: recordData?.isRecording ? 'recording' : 'disabled' });
   });
 
   device.on('connect', (call: Call) => {
@@ -111,40 +117,6 @@ export const registerDeviceListeners = (
   device.on('messageReceived', (message: { author: string; body: string }) => {
     logger('Incoming message from ' + message.author + ': ' + message.body);
   });
-
-  // device.on('messageSent'),
-  //   (message: { to: string; body: string }) => {
-  //     logger('Message sent to ' + message.to + ': ' + message.body);
-  //   };
-
-  // device.on('mute', () => {
-  //   logger('Call muted');
-  // });
-
-  // device.on('reconnected', () => {
-  //   logger('Twilio.Device has reconnected');
-  // });
-
-  // device.on('reconnecting'),
-  //   () => {
-  //     logger('Twilio.Device is reconnecting');
-  //   };
-
-  // device.on('reject', () => {
-  //   logger('Call rejected');
-  // });
-
-  // device.on('volume', (inputVolume: string, outputVolume: string) => {
-  //   logger('Call inputVolume is ' + inputVolume);
-  //   logger('Call outputVolume is ' + outputVolume);
-  // });
-
-  // device.audio.on('deviceChange', updateAllAudioDevices.bind(device));
-
-  // Show audio selection UI if it is supported by the browser.
-  // if (device.audio.isOutputSelectionSupported) {
-  //   audioSelectionDiv.classList.remove('hide');
-  // }
 };
 
 export const registerCallEvents = (
@@ -155,12 +127,15 @@ export const registerCallEvents = (
       (value: SetStateAction<Call | null>): void;
       (arg0: Call | null): void;
     };
+    RecordContext: RecordContextType;
   },
 ) => {
-  const { logger, setCall } = updateEvents;
+  const { logger, setCall, RecordContext } = updateEvents;
 
   call.on('accept', (call: Call) => {
     logger(`Call accepted, status: ${call.status()}`);
+
+    RecordContext.startRecording();
     setCall(call);
   });
 
@@ -168,8 +143,15 @@ export const registerCallEvents = (
     logger(`The call has been canceled.`);
   });
 
-  call.on('disconnect', (call: Call) => {
-    logger(`The call has been disconnected.`);
+  call.on('disconnect', async (call: Call) => {
+    let log = `The call has been disconnected`;
+
+    const record = await fetchRecordings(call.parameters.CallSid);
+
+    RecordContext.completeRecording(record?.[0]?.mediaUrl);
+    log += `\nRecording URL: ${record?.[0]?.mediaUrl}`;
+
+    logger(log, 'warning');
     setCall(call);
   });
 
