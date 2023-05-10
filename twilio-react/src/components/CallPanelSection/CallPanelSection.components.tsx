@@ -20,23 +20,26 @@ import { IconButton, PanelButton } from '../PanelButton/PanelButton.style';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
+  faLock,
+  faLockOpen,
   faPhone,
   faPhoneSlash,
   faPhoneVolume,
   faVolumeMute,
 } from '@fortawesome/free-solid-svg-icons';
 
-import { Call, Device } from '../../common/constants';
+import { Call, CallInHold, Device } from '../../common/constants';
 import RecordIndicator from '../RecordIndicator/RecordIndicator.components';
 import { RecordingSection } from '../RecordingSection/RecordingSection.components';
 import { useRecordContext } from '../../contexts/RecordContext';
+import { holdCall } from '../../services/recording';
 
 export const CallPanelSection = () => {
   const { logger } = useLoggerContext();
 
   const RecordContext = useRecordContext();
 
-  const { record, startRecording, completeRecording } = RecordContext;
+  const { record } = RecordContext;
 
   const { token: sdkToken } = useFetchToken('voice');
 
@@ -47,6 +50,11 @@ export const CallPanelSection = () => {
 
   const [device, setDevice] = useState<Device | null>(null);
   const [call, setCall] = useState<Call | null>(null);
+  const [callInHold, setCallInHold] = useState<CallInHold>({
+    callSid: '',
+    queueName: '',
+    isHold: false,
+  });
 
   useEffect(() => {
     // Can't import using npm current issue with vite and twilio https://github.com/twilio/twilio-voice.js/issues/76
@@ -129,7 +137,31 @@ export const CallPanelSection = () => {
     logger(`Recording is ${record.state === 'ready' ? 'disabled' : 'ready'}`);
   };
 
-  // console.log({ device, call, record });
+  const handleToggleHold = async () => {
+    console.log({ callInHold });
+    if (callInHold.isHold) {
+      const newCall = await device?.connect({
+        params: {
+          callSid: callInHold.callSid,
+          queueName: callInHold.queueName,
+        },
+      });
+
+      if (newCall) {
+        setCallInHold({ callSid: '', queueName: '', isHold: false });
+        registerCallEvents(newCall, {
+          logger,
+          setCall,
+          RecordContext,
+        });
+      }
+    } else {
+      const { callSid, queueName } = await holdCall(
+        call?.parameters.CallSid || '',
+      );
+      setCallInHold({ callSid, queueName, isHold: true });
+    }
+  };
 
   const status = device?.state === 'registered' ? 'active' : 'inactive';
 
@@ -185,6 +217,19 @@ export const CallPanelSection = () => {
               <FontAwesomeIcon
                 icon={call?.isMuted() ? faVolumeMute : faPhoneVolume}
                 className="phone-icon"
+              />
+            </IconButton>
+            <IconButton
+              title={
+                callInHold.isHold
+                  ? `Connect again to queue ${callInHold.queueName}`
+                  : 'Hold Call'
+              }
+              onClick={handleToggleHold}
+            >
+              <FontAwesomeIcon
+                icon={callInHold.isHold ? faLock : faLockOpen}
+                className={`${callInHold.isHold ? 'fa-lock' : 'fa-lock-open'}`}
               />
             </IconButton>
           </ButtonsSection>

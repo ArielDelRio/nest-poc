@@ -78,8 +78,6 @@ export const RecordContextProvider = ({
     });
   };
 
-  console.log('RecordContextProvider', { record });
-
   return (
     <RecordContext.Provider
       value={{

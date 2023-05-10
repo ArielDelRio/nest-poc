@@ -1,6 +1,6 @@
 import axios from 'axios';
 import config from '../common/config';
-import { RecordingStatus } from '../common/constants';
+import { CallInHold, RecordingStatus } from '../common/constants';
 
 export const fetchRecordings = async (callSid: string | undefined) => {
   const recording = await axios.post(
@@ -24,6 +24,16 @@ export const updateRecordingStatus = async (
       status,
     },
   );
+
+  return recording.data;
+};
+
+export const holdCall = async (
+  callSid: string | undefined,
+): Promise<CallInHold> => {
+  const recording = await axios.post(`${config.nestHost}/voice/hold-call`, {
+    callSid,
+  });
 
   return recording.data;
 };

@@ -23,11 +23,6 @@ export class VoiceController {
     return await this.voiceService.makeCall(makeCallDto);
   }
 
-  @Post('hold-call')
-  async holdCall() {
-    return this.voiceService.holdCall();
-  }
-
   @Post('receive-call')
   async receiveCall(@Body() body) {
     return this.voiceService.receiveCall();
@@ -108,5 +103,10 @@ export class VoiceController {
   @Post('update-recording-status')
   updateRecordingStatus(@Body() body: any) {
     return this.voiceService.updateRecordingStatus(body.callSid, body.status);
+  }
+
+  @Post('hold-call')
+  async holdCall(@Body() { callSid }: { callSid: string }) {
+    return this.voiceService.holdCall(callSid);
   }
 }

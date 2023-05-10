@@ -52,12 +52,6 @@ export class VoiceService {
     }
   }
 
-  async holdCall() {
-    const voiceResponse = new twiml.VoiceResponse();
-    voiceResponse.say({ voice: 'alice' }, 'Please hold!');
-    return voiceResponse.toString();
-  }
-
   async receiveCall() {
     // return this.recordCall();
     // this.voiceResponse.say(
@@ -225,7 +219,7 @@ export class VoiceService {
   }
 
   async handleClientCall(callDto: any) {
-    const { To, Record } = callDto;
+    const { To, Record, callSid, queueName } = callDto;
     const callerId = this.twilioConfig.callerId;
     const voiceResponse = new twiml.VoiceResponse();
 
@@ -251,13 +245,34 @@ export class VoiceService {
         const attr = /^[\d\+\-\(\) ]+$/.test(To) ? 'number' : 'client';
 
         if (attr === 'client') {
-          dial.client(To).parameter({
+          // const conference = dial.conference(
+          //   {
+          //     startConferenceOnEnter: true,
+          //     endConferenceOnExit: true,
+          //     beep: 'false',
+          //   },
+          //   'My conference',
+          // );
+
+          // this.twilio.calls.create({
+          //   to: `client:${To}`,
+          //   from: callerId,
+          //   callerId,
+          //   twiml: conference.toString(),
+          // });
+
+          dial.client({}, To).parameter({
             name: 'Record',
             value: JSON.stringify({ isRecording: recordData?.isRecording }),
           });
         } else {
           dial.number(To);
         }
+      } else if (queueName) {
+        const dial = voiceResponse.dial({ ...dialSettings, callerId });
+
+        const isMemberInQueue = this.connectToQueue(callSid, queueName);
+        if (isMemberInQueue) dial.queue(queueName);
       } else {
         voiceResponse.say('Thanks for calling!');
       }
@@ -280,6 +295,67 @@ export class VoiceService {
         .update({ status });
     } catch (error) {
       console.log(error);
+    }
+  }
+
+  async holdCall(callSid: string) {
+    const voiceResponse = new twiml.VoiceResponse();
+
+    try {
+      const callToHold = await this.findCallToHold(callSid);
+
+      const queueName = `support-${callToHold.toFormatted}`;
+
+      const queueToHoldTwiml = voiceResponse
+        .enqueue(
+          { waitUrl: 'https://demo.twilio.com/docs/voice.xml' },
+          `${queueName}`,
+        )
+        .toString();
+
+      callToHold.update({
+        twiml: queueToHoldTwiml,
+      });
+
+      return {
+        callSid: callToHold.sid,
+        queueName,
+      };
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async findCallToHold(callSid: string) {
+    const call = await this.twilio.calls(callSid).fetch();
+    let callToHold;
+
+    // outgoing call to hold
+    if (call.direction === 'inbound') {
+      callToHold = (
+        await this.twilio.calls.list({ status: 'in-progress' })
+      ).filter((call) => call.sid !== callSid)?.[0];
+    }
+    // incoming call to hold
+    else {
+      callToHold = await this.twilio.calls(call.parentCallSid).fetch();
+    }
+
+    return callToHold;
+  }
+
+  async connectToQueue(callSid: string, queueName = 'support') {
+    const queue = (await this.twilio.queues.list()).find((queue) =>
+      queue.friendlyName.includes(queueName),
+    );
+    if (queue) {
+      // dial to queue
+      const members = (await queue.members().list()).at(0);
+      if (members === undefined) {
+        queue.remove();
+        return false;
+      }
+      return true;
     }
   }
 }

@@ -111,3 +111,9 @@ export interface Record {
   url: string;
   status: RecordingStatus;
 }
+
+export interface CallInHold {
+  callSid: string;
+  queueName: string;
+  isHold?: boolean;
+}

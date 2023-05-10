@@ -53,11 +53,16 @@ export const ErrorLabel = styled.span`
 `;
 
 export const ButtonsSection = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.2em 1em;
   gap: 0.2em;
 `;
 
 export const ButtonsSectionHeader = styled(ButtonsSection)`
+  display: flex;
   justify-content: center;
   gap: 1em;
 `;

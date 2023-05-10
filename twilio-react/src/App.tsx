@@ -97,7 +97,7 @@ function App() {
     );
   };
 
-  // console.log({ worker, workerClient, activities, reservations, channels });
+  console.log({ worker, workerClient, activities, reservations, channels });
 
   if (fetchWorkerError)
     return (
